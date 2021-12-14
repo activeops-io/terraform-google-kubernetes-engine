@@ -71,8 +71,9 @@ resource "google_container_cluster" "primary" {
       for_each = var.cluster_autoscaling.enabled ? [1] : []
 
       content {
-        service_account = local.service_account
-        oauth_scopes    = local.node_pools_oauth_scopes["all"]
+        service_account  = local.service_account
+        oauth_scopes     = local.node_pools_oauth_scopes["all"]
+        min_cpu_platform = lookup(var.node_pools[0], "min_cpu_platform", "")
       }
     }
     autoscaling_profile = var.cluster_autoscaling.autoscaling_profile != null ? var.cluster_autoscaling.autoscaling_profile : "BALANCED"
@@ -211,7 +212,7 @@ resource "google_container_cluster" "primary" {
   }
 
   lifecycle {
-    ignore_changes = [node_pool, initial_node_count, dns_config]
+    ignore_changes = [node_pool, initial_node_count, dns_config, resource_labels["asmv"], resource_labels["mesh_id"]]
   }
 
   timeouts {
@@ -225,6 +226,10 @@ resource "google_container_cluster" "primary" {
     initial_node_count = var.initial_node_count
 
     node_config {
+      image_type       = lookup(var.node_pools[0], "image_type", lookup(var.node_pools[0], "sandbox_enabled", var.sandbox_enabled) ? "COS_CONTAINERD" : "COS")
+      machine_type     = lookup(var.node_pools[0], "machine_type", "e2-medium")
+      min_cpu_platform = lookup(var.node_pools[0], "min_cpu_platform", "")
+
       service_account = lookup(var.node_pools[0], "service_account", local.service_account)
 
       dynamic "workload_metadata_config" {
@@ -236,6 +241,20 @@ resource "google_container_cluster" "primary" {
       }
 
       metadata = local.node_pools_metadata["all"]
+
+      dynamic "sandbox_config" {
+        for_each = tobool((lookup(var.node_pools[0], "sandbox_enabled", var.sandbox_enabled))) ? ["gvisor"] : []
+        content {
+          sandbox_type = sandbox_config.value
+        }
+      }
+
+      boot_disk_kms_key = lookup(var.node_pools[0], "boot_disk_kms_key", "")
+
+      shielded_instance_config {
+        enable_secure_boot          = lookup(var.node_pools[0], "enable_secure_boot", false)
+        enable_integrity_monitoring = lookup(var.node_pools[0], "enable_integrity_monitoring", true)
+      }
     }
   }
 
@@ -365,8 +384,9 @@ resource "google_container_node_pool" "pools" {
   }
 
   node_config {
-    image_type   = lookup(each.value, "image_type", lookup(each.value, "sandbox_enabled", var.sandbox_enabled) ? "COS_CONTAINERD" : "COS")
-    machine_type = lookup(each.value, "machine_type", "e2-medium")
+    image_type       = lookup(each.value, "image_type", lookup(each.value, "sandbox_enabled", var.sandbox_enabled) ? "COS_CONTAINERD" : "COS")
+    machine_type     = lookup(each.value, "machine_type", "e2-medium")
+    min_cpu_platform = lookup(var.node_pools[0], "min_cpu_platform", "")
     labels = merge(
       lookup(lookup(local.node_pools_labels, "default_values", {}), "cluster_name", true) ? { "cluster_name" = var.name } : {},
       lookup(lookup(local.node_pools_labels, "default_values", {}), "node_pool", true) ? { "node_pool" = each.value["name"] } : {},
@@ -425,11 +445,13 @@ resource "google_container_node_pool" "pools" {
 
     guest_accelerator = [
       for guest_accelerator in lookup(each.value, "accelerator_count", 0) > 0 ? [{
-        type  = lookup(each.value, "accelerator_type", "")
-        count = lookup(each.value, "accelerator_count", 0)
+        type               = lookup(each.value, "accelerator_type", "")
+        count              = lookup(each.value, "accelerator_count", 0)
+        gpu_partition_size = lookup(each.value, "gpu_partition_size", null)
         }] : [] : {
-        type  = guest_accelerator["type"]
-        count = guest_accelerator["count"]
+        type               = guest_accelerator["type"]
+        count              = guest_accelerator["count"]
+        gpu_partition_size = guest_accelerator["gpu_partition_size"]
       }
     ]
 
@@ -450,10 +472,15 @@ resource "google_container_node_pool" "pools" {
     boot_disk_kms_key = lookup(each.value, "boot_disk_kms_key", "")
 
     dynamic "kubelet_config" {
-      for_each = contains(keys(each.value), "cpu_manager_policy") ? [1] : []
+      for_each = length(setintersection(
+        keys(each.value),
+        ["cpu_manager_policy", "cpu_cfs_quota", "cpu_cfs_quota_period"]
+      )) != 0 ? [1] : []
 
       content {
-        cpu_manager_policy = lookup(each.value, "cpu_manager_policy")
+        cpu_manager_policy   = lookup(each.value, "cpu_manager_policy", "static")
+        cpu_cfs_quota        = lookup(each.value, "cpu_cfs_quota", null)
+        cpu_cfs_quota_period = lookup(each.value, "cpu_cfs_quota_period", null)
       }
     }
 
