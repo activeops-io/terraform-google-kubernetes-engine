@@ -17,7 +17,7 @@ location = attribute('location')
 cluster_name = attribute('cluster_name')
 
 expected_accelerators_count = "1"
-expected_accelerators_type = "nvidia-tesla-p4"
+expected_accelerators_type = "nvidia-tesla-a100"
 
 control "gcloud" do
   title "Google Compute Engine GKE configuration"
@@ -207,7 +207,7 @@ control "gcloud" do
             including(
               "name" => "pool-02",
               "config" => including(
-                "machineType" => "n1-standard-2",
+                "machineType" => "a2-highgpu-1g",
               ),
             )
           )
@@ -252,7 +252,8 @@ control "gcloud" do
               "name" => "pool-02",
               "config" => including(
                 "accelerators" => [{"acceleratorCount" => expected_accelerators_count,
-                                    "acceleratorType" => expected_accelerators_type}],
+                                    "acceleratorType" => expected_accelerators_type,
+                                    "gpuPartitionSize" => "1g.5gb"}],
               ),
             )
           )
@@ -449,6 +450,20 @@ control "gcloud" do
               "config" => including(
                 "imageType" => "COS_CONTAINERD",
               ),
+            )
+          )
+        end
+
+        it "has the expected kubelet config" do
+          expect(data['nodePools']).to include(
+            including(
+              "name" => "pool-03",
+              "config" => including(
+                "kubeletConfig" => including(
+                  "cpuManagerPolicy" => "static",
+                  "cpuCfsQuota" => true
+                )
+              )
             )
           )
         end
