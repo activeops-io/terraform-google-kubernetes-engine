@@ -108,6 +108,12 @@ variable "network_policy_provider" {
   default     = "CALICO"
 }
 
+variable "datapath_provider" {
+  type        = string
+  description = "The desired datapath provider for this cluster. By default, `DATAPATH_PROVIDER_UNSPECIFIED` enables the IPTables-based kube-proxy implementation. `ADVANCED_DATAPATH` enables Dataplane-V2 feature."
+  default     = "DATAPATH_PROVIDER_UNSPECIFIED"
+}
+
 variable "maintenance_start_time" {
   type        = string
   description = "Time window specified for daily or recurring maintenance operations in RFC3339 format"
@@ -284,6 +290,7 @@ variable "ip_masq_link_local" {
 }
 
 variable "configure_ip_masq" {
+  type        = bool
   description = "Enables the installation of ip masquerading, which is usually no longer required when using aliasied IP addresses. IP masquerading uses a kubectl call, so when you have a private cluster, you will need access to the API server."
   default     = false
 }
@@ -324,18 +331,6 @@ variable "service_account" {
   default     = ""
 }
 
-variable "basic_auth_username" {
-  type        = string
-  description = "The username to be used with Basic Authentication. An empty value will disable Basic Authentication, which is the recommended configuration."
-  default     = ""
-}
-
-variable "basic_auth_password" {
-  type        = string
-  description = "The password to be used with Basic Authentication."
-  default     = ""
-}
-
 variable "issue_client_certificate" {
   type        = bool
   description = "Issues a client certificate to authenticate to the cluster endpoint. To maximize the security of your cluster, leave this option disabled. Client certificates don't automatically rotate and aren't easily revocable. WARNING: changing this after cluster creation is destructive!"
@@ -343,6 +338,7 @@ variable "issue_client_certificate" {
 }
 
 variable "cluster_ipv4_cidr" {
+  type        = string
   default     = null
   description = "The IP address range of the kubernetes pods in this cluster. Default is an automatically assigned CIDR."
 }
@@ -360,6 +356,7 @@ variable "skip_provisioners" {
 }
 
 variable "default_max_pods_per_node" {
+  type        = number
   description = "The maximum number of pods to schedule per node"
   default     = 110
 }
@@ -396,8 +393,13 @@ variable "authenticator_security_group" {
 
 variable "node_metadata" {
   description = "Specifies how node metadata is exposed to the workload running on the node"
-  default     = "GKE_METADATA_SERVER"
+  default     = "GKE_METADATA"
   type        = string
+
+  validation {
+    condition     = contains(["GKE_METADATA", "GCE_METADATA", "UNSPECIFIED", "GKE_METADATA_SERVER", "EXPOSE"], var.node_metadata)
+    error_message = "The node_metadata value must be one of GKE_METADATA, GCE_METADATA or UNSPECIFIED."
+  }
 }
 
 variable "database_encryption" {
@@ -411,7 +413,7 @@ variable "database_encryption" {
 }
 
 variable "identity_namespace" {
-  description = "Workload Identity namespace. (Default value of `enabled` automatically sets project based namespace `[project_id].svc.id.goog`)"
+  description = "The workload pool to attach all Kubernetes service accounts to. (Default value of `enabled` automatically sets project-based pool `[project_id].svc.id.goog`)"
   type        = string
   default     = "enabled"
 }
@@ -429,6 +431,7 @@ variable "enable_shielded_nodes" {
 }
 
 variable "enable_binary_authorization" {
+  type        = bool
   description = "Enable BinAuthZ Admission controller"
   default     = false
 }

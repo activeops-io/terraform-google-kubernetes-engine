@@ -86,6 +86,17 @@ control "gcloud" do
           )
         end
 
+        it "has the expected image type" do
+          expect(data['nodePools']).to include(
+            including(
+              "name" => "pool-01",
+              "config" => including(
+                "imageType" => "COS_CONTAINERD",
+              ),
+            )
+          )
+        end
+
         it "has autoscaling enabled" do
           expect(data['nodePools']).to include(
             including(
@@ -503,8 +514,8 @@ control "gcloud" do
         including(
           "name" => "pool-03",
           "locations" => match_array([
-            "us-central1-b",
-            "us-central1-c",
+            "#{location}-b",
+            "#{location}-c",
           ]),
         )
       )

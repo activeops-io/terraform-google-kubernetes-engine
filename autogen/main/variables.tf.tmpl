@@ -107,13 +107,12 @@ variable "network_policy_provider" {
   description = "The network policy provider."
   default     = "CALICO"
 }
-{% if beta_cluster %}
+
 variable "datapath_provider" {
   type        = string
   description = "The desired datapath provider for this cluster. By default, `DATAPATH_PROVIDER_UNSPECIFIED` enables the IPTables-based kube-proxy implementation. `ADVANCED_DATAPATH` enables Dataplane-V2 feature."
   default     = "DATAPATH_PROVIDER_UNSPECIFIED"
 }
-{% endif %}
 
 variable "maintenance_start_time" {
   type        = string
@@ -331,6 +330,7 @@ variable "ip_masq_link_local" {
 }
 
 variable "configure_ip_masq" {
+  type        = bool
   description = "Enables the installation of ip masquerading, which is usually no longer required when using aliasied IP addresses. IP masquerading uses a kubectl call, so when you have a private cluster, you will need access to the API server."
   default     = false
 }
@@ -349,12 +349,28 @@ variable "logging_service" {
   default     = "logging.googleapis.com/kubernetes"
 }
 
+{% if beta_cluster %}
+variable "logging_enabled_components" {
+  type        = list(string)
+  description = "List of services to monitor: SYSTEM_COMPONENTS, WORKLOADS. Empty list is default GKE configuration."
+  default     = []
+}
+
+{% endif %}
 variable "monitoring_service" {
   type        = string
   description = "The monitoring service that the cluster should write metrics to. Automatically send metrics from pods in the cluster to the Google Cloud Monitoring API. VM metrics will be collected by Google Compute Engine regardless of this setting Available options include monitoring.googleapis.com, monitoring.googleapis.com/kubernetes (beta) and none"
   default     = "monitoring.googleapis.com/kubernetes"
 }
 
+{% if beta_cluster %}
+variable "monitoring_enabled_components" {
+  type        = list(string)
+  description = "List of services to monitor: SYSTEM_COMPONENTS, WORKLOADS (provider version >= 3.89.0). Empty list is default GKE configuration."
+  default     = []
+}
+
+{% endif %}
 variable "create_service_account" {
   type        = bool
   description = "Defines if service account specified to run nodes should be created."
@@ -379,18 +395,6 @@ variable "service_account" {
   default     = ""
 }
 
-variable "basic_auth_username" {
-  type        = string
-  description = "The username to be used with Basic Authentication. An empty value will disable Basic Authentication, which is the recommended configuration."
-  default     = ""
-}
-
-variable "basic_auth_password" {
-  type        = string
-  description = "The password to be used with Basic Authentication."
-  default     = ""
-}
-
 variable "issue_client_certificate" {
   type        = bool
   description = "Issues a client certificate to authenticate to the cluster endpoint. To maximize the security of your cluster, leave this option disabled. Client certificates don't automatically rotate and aren't easily revocable. WARNING: changing this after cluster creation is destructive!"
@@ -398,6 +402,7 @@ variable "issue_client_certificate" {
 }
 
 variable "cluster_ipv4_cidr" {
+  type        = string
   default     = null
   description = "The IP address range of the kubernetes pods in this cluster. Default is an automatically assigned CIDR."
 }
@@ -415,6 +420,7 @@ variable "skip_provisioners" {
 }
 
 variable "default_max_pods_per_node" {
+  type        = number
   description = "The maximum number of pods to schedule per node"
   default     = 110
 }
@@ -524,6 +530,12 @@ variable "enable_intranode_visibility" {
   description = "Whether Intra-node visibility is enabled for this cluster. This makes same node pod to pod traffic visible for VPC network"
   default     = false
 }
+
+variable "enable_identity_service" {
+  type        = bool
+  description = "Enable the Identity Service component, which allows customers to use external identity providers with the K8S API."
+  default     = false
+}
 {% endif %}
 
 variable "authenticator_security_group" {
@@ -534,8 +546,13 @@ variable "authenticator_security_group" {
 
 variable "node_metadata" {
   description = "Specifies how node metadata is exposed to the workload running on the node"
-  default     = "GKE_METADATA_SERVER"
+  default     = "GKE_METADATA"
   type        = string
+
+  validation {
+    condition     = contains(["GKE_METADATA", "GCE_METADATA", "UNSPECIFIED", "GKE_METADATA_SERVER", "EXPOSE"], var.node_metadata)
+    error_message = "The node_metadata value must be one of GKE_METADATA, GCE_METADATA or UNSPECIFIED."
+  }
 }
 
 variable "database_encryption" {
@@ -549,7 +566,7 @@ variable "database_encryption" {
 }
 
 variable "identity_namespace" {
-  description = "Workload Identity namespace. (Default value of `enabled` automatically sets project based namespace `[project_id].svc.id.goog`)"
+  description = "The workload pool to attach all Kubernetes service accounts to. (Default value of `enabled` automatically sets project-based pool `[project_id].svc.id.goog`)"
   type        = string
   default     = "enabled"
 }
@@ -567,6 +584,7 @@ variable "enable_shielded_nodes" {
 }
 
 variable "enable_binary_authorization" {
+  type        = bool
   description = "Enable BinAuthZ Admission controller"
   default     = false
 }
