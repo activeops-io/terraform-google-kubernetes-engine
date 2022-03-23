@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,14 +141,14 @@ output "identity_namespace" {
   ]
 }
 
-output "istio_enabled" {
-  description = "Whether Istio is enabled"
-  value       = local.cluster_istio_enabled
-}
-
 output "cloudrun_enabled" {
   description = "Whether CloudRun enabled"
   value       = local.cluster_cloudrun_enabled
+}
+
+output "istio_enabled" {
+  description = "Whether Istio is enabled"
+  value       = local.cluster_istio_enabled
 }
 
 output "dns_cache_enabled" {

@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,6 @@ resource "google_container_cluster" "primary" {
   node_locations    = local.node_locations
   cluster_ipv4_cidr = var.cluster_ipv4_cidr
   network           = "projects/${local.network_project_id}/global/networks/${var.network}"
-
   dynamic "network_policy" {
     for_each = local.cluster_network_policy
 
@@ -79,7 +78,6 @@ resource "google_container_cluster" "primary" {
       enable_components = var.monitoring_enabled_components
     }
   }
-
   cluster_autoscaling {
     enabled = var.cluster_autoscaling.enabled
     dynamic "auto_provisioning_defaults" {
@@ -101,13 +99,10 @@ resource "google_container_cluster" "primary" {
       }
     }
   }
-
   vertical_pod_autoscaling {
     enabled = var.enable_vertical_pod_autoscaling
   }
-
-  default_max_pods_per_node = var.default_max_pods_per_node
-
+  default_max_pods_per_node   = var.default_max_pods_per_node
   enable_shielded_nodes       = var.enable_shielded_nodes
   enable_binary_authorization = var.enable_binary_authorization
   enable_intranode_visibility = var.enable_intranode_visibility
@@ -159,6 +154,10 @@ resource "google_container_cluster" "primary" {
 
     network_policy_config {
       disabled = !var.network_policy
+    }
+
+    gcp_filestore_csi_driver_config {
+      enabled = var.filestore_csi_driver
     }
 
     istio_config {
@@ -228,7 +227,6 @@ resource "google_container_cluster" "primary" {
         end_time       = maintenance_exclusion.value.end_time
       }
     }
-
   }
 
   lifecycle {
@@ -240,7 +238,6 @@ resource "google_container_cluster" "primary" {
     update = "45m"
     delete = "45m"
   }
-
   node_pool {
     name               = "default-pool"
     initial_node_count = var.initial_node_count
@@ -346,7 +343,6 @@ resource "google_container_cluster" "primary" {
       security_group = authenticator_groups_config.value.security_group
     }
   }
-
   notification_config {
     pubsub {
       enabled = var.notification_config_topic != "" ? true : false
@@ -354,7 +350,6 @@ resource "google_container_cluster" "primary" {
     }
   }
 }
-
 /******************************************
   Create Container Cluster node pools
  *****************************************/

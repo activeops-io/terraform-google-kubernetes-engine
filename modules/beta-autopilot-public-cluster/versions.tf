@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,21 @@
  * limitations under the License.
  */
 
-module "hub" {
-  source                  = "../../modules/hub"
-  project_id              = var.project_id
-  location                = module.gke.location
-  cluster_name            = module.gke.name
-  cluster_endpoint        = module.gke.endpoint
-  gke_hub_membership_name = "gke-asm-membership"
+
+terraform {
+  required_version = ">=0.13"
+
+  required_providers {
+    google-beta = {
+      source  = "hashicorp/google-beta"
+      version = ">= 4.10.0, < 5.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.0"
+    }
+  }
+  provider_meta "google-beta" {
+    module_name = "blueprints/terraform/terraform-google-kubernetes-engine:beta-autopilot-public-cluster/v20.0.0"
+  }
 }
