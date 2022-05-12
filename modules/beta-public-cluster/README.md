@@ -63,6 +63,7 @@ module "gke" {
       disk_size_gb              = 100
       disk_type                 = "pd-standard"
       image_type                = "COS_CONTAINERD"
+      enable_gcfs               = false
       auto_repair               = true
       auto_upgrade              = true
       service_account           = "project-service-account@<PROJECT ID>.iam.gserviceaccount.com"
@@ -166,12 +167,10 @@ Then perform the following commands on the root folder:
 | firewall\_inbound\_ports | List of TCP ports for admission/webhook controllers. Either flag `add_master_webhook_firewall_rules` or `add_cluster_firewall_rules` (also adds egress rules) must be set to `true` for inbound-ports firewall rules to be applied. | `list(string)` | <pre>[<br>  "8443",<br>  "9443",<br>  "15017"<br>]</pre> | no |
 | firewall\_priority | Priority rule for firewall rules | `number` | `1000` | no |
 | gce\_pd\_csi\_driver | (Beta) Whether this cluster should enable the Google Compute Engine Persistent Disk Container Storage Interface (CSI) Driver. | `bool` | `false` | no |
-| gcloud\_upgrade | Whether to upgrade gcloud at runtime | `bool` | `false` | no |
 | grant\_registry\_access | Grants created cluster-specific service account storage.objectViewer and artifactregistry.reader roles. | `bool` | `false` | no |
 | horizontal\_pod\_autoscaling | Enable horizontal pod autoscaling addon | `bool` | `true` | no |
 | http\_load\_balancing | Enable httpload balancer addon | `bool` | `true` | no |
 | identity\_namespace | The workload pool to attach all Kubernetes service accounts to. (Default value of `enabled` automatically sets project-based pool `[project_id].svc.id.goog`) | `string` | `"enabled"` | no |
-| impersonate\_service\_account | An optional service account to impersonate for gcloud commands. If this service account is not specified, the module will use Application Default Credentials. | `string` | `""` | no |
 | initial\_node\_count | The number of nodes to create in this cluster's default node pool. | `number` | `0` | no |
 | ip\_masq\_link\_local | Whether to masquerade traffic to the link-local prefix (169.254.0.0/16). | `bool` | `false` | no |
 | ip\_masq\_resync\_interval | The interval at which the agent attempts to sync its ConfigMap file from the disk. | `string` | `"60s"` | no |
@@ -276,6 +275,7 @@ The node_pools variable takes the following parameters:
 | disk_size_gb | Size of the disk attached to each node, specified in GB. The smallest allowed disk size is 10GB | 100 | Optional |
 | disk_type | Type of the disk attached to each node (e.g. 'pd-standard' or 'pd-ssd') | pd-standard | Optional |
 | effect | Effect for the taint | | Required |
+| enable_gcfs | Google Container File System (gcfs) has to be enabled for image streaming to be active. Needs image_type to be set to COS_CONTAINERD. | false | Optional |
 | enable_integrity_monitoring | Enables monitoring and attestation of the boot integrity of the instance. The attestation is performed against the integrity policy baseline. This baseline is initially derived from the implicitly trusted boot image when the instance is created. | true | Optional |
 | enable_secure_boot | Secure Boot helps ensure that the system only runs authentic software by verifying the digital signature of all boot components, and halting the boot process if signature verification fails. | false | Optional |
 | gpu_partition_size | Size of partitions to create on the GPU | null | Optional |

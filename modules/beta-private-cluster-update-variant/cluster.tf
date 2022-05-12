@@ -67,7 +67,8 @@ resource "google_container_cluster" "primary" {
       type = var.cluster_telemetry_type
     }
   }
-  logging_service = local.cluster_telemetry_type_is_set ? null : var.logging_service
+  # only one of logging/monitoring_service or logging/monitoring_config can be specified
+  logging_service = local.cluster_telemetry_type_is_set || local.logmon_config_is_set ? null : var.logging_service
   dynamic "logging_config" {
     for_each = length(var.logging_enabled_components) > 0 ? [1] : []
 
@@ -75,8 +76,7 @@ resource "google_container_cluster" "primary" {
       enable_components = var.logging_enabled_components
     }
   }
-
-  monitoring_service = local.cluster_telemetry_type_is_set ? null : var.monitoring_service
+  monitoring_service = local.cluster_telemetry_type_is_set || local.logmon_config_is_set ? null : var.monitoring_service
   dynamic "monitoring_config" {
     for_each = length(var.monitoring_enabled_components) > 0 ? [1] : []
 
@@ -252,6 +252,9 @@ resource "google_container_cluster" "primary" {
       image_type       = lookup(var.node_pools[0], "image_type", "COS_CONTAINERD")
       machine_type     = lookup(var.node_pools[0], "machine_type", "e2-medium")
       min_cpu_platform = lookup(var.node_pools[0], "min_cpu_platform", "")
+      gcfs_config {
+        enabled = lookup(var.node_pools[0], "enable_gcfs", false)
+      }
 
       service_account = lookup(var.node_pools[0], "service_account", local.service_account)
 
@@ -371,6 +374,7 @@ locals {
     "preemptible",
     "spot",
     "service_account",
+    "enable_gcfs",
   ]
 }
 
@@ -500,7 +504,10 @@ resource "google_container_node_pool" "pools" {
   node_config {
     image_type       = lookup(each.value, "image_type", "COS_CONTAINERD")
     machine_type     = lookup(each.value, "machine_type", "e2-medium")
-    min_cpu_platform = lookup(var.node_pools[0], "min_cpu_platform", "")
+    min_cpu_platform = lookup(each.value, "min_cpu_platform", "")
+    gcfs_config {
+      enabled = lookup(each.value, "enable_gcfs", false)
+    }
     labels = merge(
       lookup(lookup(local.node_pools_labels, "default_values", {}), "cluster_name", true) ? { "cluster_name" = var.name } : {},
       lookup(lookup(local.node_pools_labels, "default_values", {}), "node_pool", true) ? { "node_pool" = each.value["name"] } : {},

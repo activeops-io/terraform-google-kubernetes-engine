@@ -1,5 +1,5 @@
 /**
- * Copyright 2018 Google LLC
+ * Copyright 2022 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-// This file was automatically generated from a template in ./autogen/main
+output "cluster_membership_id" {
+  description = "The ID of the hub membership"
+  value       = var.enable_fleet_registration ? google_gke_hub_membership.primary[0].membership_id : local.gke_hub_membership_name
+}
 
-/******************************************
-  Retrieve authentication token
- *****************************************/
-data "google_client_config" "default" {
-  provider = google-beta
+output "wait" {
+  description = "An output to use when you want to depend on registration finishing"
+  value       = var.enable_fleet_registration ? google_gke_hub_membership.primary[0].membership_id : local.gke_hub_membership_name
 }

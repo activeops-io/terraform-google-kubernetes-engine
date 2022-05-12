@@ -73,11 +73,11 @@ module "gke" {
 
   maintenance_start_time = var.maintenance_start_time
 
-  initial_node_count = var.initial_node_count
-
-  // We suggest removing the default node pull, as it cannot be modified without
+  // We suggest removing the default node pool, as it cannot be modified without
   // destroying the cluster.
   remove_default_node_pool = true
+  // If removing the default node pool, initial_node_count should be at least 1.
+  initial_node_count = (var.initial_node_count == 0) ? 1 : var.initial_node_count
 
   node_pools          = var.node_pools
   node_pools_labels   = var.node_pools_labels
@@ -99,7 +99,7 @@ module "gke" {
 
   // We either:
   // - Create a dedicated service account with minimal permissions to run nodes.
-  //   All applications shuold run with an identity defined via Workload Identity anyway.
+  //   All applications should run with an identity defined via Workload Identity anyway.
   // - Use a service account passed as a parameter to the module, in case the user
   //   wants to maintain control of their service accounts.
   create_service_account = var.compute_engine_service_account == "" ? true : false
@@ -165,7 +165,8 @@ module "gke" {
 
   skip_provisioners = var.skip_provisioners
 
-  gce_pd_csi_driver = var.gce_pd_csi_driver
+  gce_pd_csi_driver    = var.gce_pd_csi_driver
+  filestore_csi_driver = var.filestore_csi_driver
 
   notification_config_topic = var.notification_config_topic
 }
